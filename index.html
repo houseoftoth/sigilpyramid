@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quantum Sigil Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+      font-family: 'Orbitron', sans-serif;
+      color: white;
+    }
+
+    canvas#stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    #rabbit {
+      position: absolute;
+      width: 100px;
+      z-index: 10;
+    }
+
+    .spiral-eye {
+      width: 200px;
+      animation: spin 10s linear infinite;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+    }
+
+    @keyframes spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    #signature-box {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border: 1px solid white;
+      z-index: 999;
+    }
+
+    .goblin {
+      position: absolute;
+      width: 60px;
+      animation: fadeInOut 8s linear forwards;
+      z-index: 11;
+    }
+
+    .sigil {
+      position: absolute;
+      width: 30px;
+      animation: pulse 5s ease-in-out infinite;
+      z-index: 12;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: scale(0.5); }
+      20% { opacity: 1; transform: scale(1); }
+      80% { opacity: 1; }
+      100% { opacity: 0; transform: scale(0.5); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Starfield -->
+  <canvas id="stars"></canvas>
+
+  <!-- Eye of Ra -->
+  <img src="assets/eyeOfRa.svg" class="spiral-eye" />
+
+  <!-- Floating Rabbit -->
+  <img id="rabbit" src="assets/rabbit.gif" alt="White Rabbit" />
+
+  <!-- Signature Log -->
+  <div id="signature-box">
+    <h3>Sign the Portal</h3>
+    <form id="signature-form">
+      <input type="text" id="visitorName" placeholder="Name" required />
+      <button type="submit">Sign</button>
+    </form>
+    <div id="signature-log"></div>
+  </div>
+
+  <!-- Hidden YouTube Audio -->
+  <div id="audio-player" style="display: none;">
+    <iframe
+      width="0"
+      height="0"
+      src="https://www.youtube.com/embed/oavyA26c3Aw?autoplay=1&loop=1&playlist=oavyA26c3Aw&controls=0&mute=1"
+      frameborder="0"
+      allow="autoplay; encrypted-media"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <script>
+    // Floating white rabbit
+    const rabbit = document.getElementById('rabbit');
+    let angle = 0;
+    function floatRabbit() {
+      angle += 0.01;
+      rabbit.style.top = 150 + Math.sin(angle) * 50 + "px";
+      rabbit.style.left = 150 + Math.cos(angle) * 150 + "px";
+      requestAnimationFrame(floatRabbit);
+    }
+    floatRabbit();
+
+    // Starfield animation
+    const canvas = document.getElementById("stars");
+    const ctx = canvas.getContext("2d");
+    let stars = [];
+
+    function initStars() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      stars = [];
+      for (let i = 0; i < 300; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.5,
+          d: Math.random() * 300
+        });
+      }
+    }
+
+    initStars();
+
+    window.addEventListener('resize', initStars);
+
+    let starAngle = 0;
+    function drawStars() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      for (let i = 0; i < stars.length; i++) {
+        const s = stars[i];
+        ctx.moveTo(s.x, s.y);
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2, true);
+      }
+      ctx.fill();
+      updateStars();
+    }
+
+    function updateStars() {
+      starAngle += 0.01;
+      for (let i = 0; i < stars.length; i++) {
+        stars[i].y += Math.cos(starAngle + stars[i].d) + 1 + stars[i].r / 2;
+        stars[i].x += Math.sin(starAngle) * 2;
+        if (stars[i].x > canvas.width || stars[i].x < 0 || stars[i].y > canvas.height) {
+          stars[i].x = Math.random() * canvas.width;
+          stars[i].y = -10;
+        }
+      }
+    }
+
+    function animateStars() {
+      drawStars();
+      requestAnimationFrame(animateStars);
+    }
+    animateStars();
+
+    // Signature
+    document.getElementById('signature-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('visitorName').value;
+      const time = new Date().toLocaleString();
+      const log = document.getElementById('signature-log');
+      log.innerHTML += `<p>${name} signed at ${time}</p>`;
+      document.getElementById('visitorName').value = '';
+    });
+
+    // Spawn Goblin + Sigil
+    function spawnGoblin() {
+      const goblin = document.createElement('img');
+      goblin.src = 'assets/goblin.png'; // your goblin image
+      goblin.classList.add('goblin');
+      goblin.style.top = Math.random() * window.innerHeight + "px";
+      goblin.style.left = Math.random() * window.innerWidth + "px";
+      document.body.appendChild(goblin);
+      setTimeout(() => goblin.remove(), 8000);
+
+      const sigil = document.createElement('img');
+      sigil.src = 'assets/sigil' + Math.ceil(Math.random() * 5) + '.svg'; // sigil1.svg to sigil5.svg
+      sigil.classList.add('sigil');
+      sigil.style.top = (parseFloat(goblin.style.top) + 30) + "px";
+      sigil.style.left = (parseFloat(goblin.style.left) + 30) + "px";
+      document.body.appendChild(sigil);
+      setTimeout(() => sigil.remove(), 8000);
+    }
+
+    setInterval(spawnGoblin, 15000); // every 15 sec
+  </script>
+</body>
+</html>
