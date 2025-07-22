@@ -162,15 +162,6 @@
       padding: 5px;
       margin-bottom: 5px;
     }
-
-    #audio-player {
-      position: absolute;
-      left: -10000px;
-      top: -10000px;
-      width: 1px;
-      height: 1px;
-      z-index: -1;
-    }
   </style>
 </head>
 <body>
@@ -188,15 +179,6 @@
 
   <!-- Floating Black Cat -->
   <div id="black-cat">🐈‍⬛</div>
-
-  <!-- Hidden Audio Player -->
-  <iframe id="audio-player"
-    src="https://www.youtube.com/embed/YnwfTHpnGLY?autoplay=1&loop=1&playlist=YnwfTHpnGLY"
-    title="Background Audio"
-    frameborder="0"
-    allow="autoplay; encrypted-media"
-    allowfullscreen>
-  </iframe>
 
   <!-- Controls -->
   <div id="controls">
@@ -277,6 +259,7 @@
         node.style.top = `${(height / numLines) * i}px`;
       });
 
+      drawStars();
       drawOverlay();
     }
 
