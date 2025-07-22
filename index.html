@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>HOUSE OF TOTH — Quantum Sigil Portal</title>
+  <title>SIGILPYRAMID — HOUSE OF TOTH Quantum Sigil Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -14,11 +14,19 @@
       color: white;
     }
 
-    canvas#stars {
+    canvas {
       position: fixed;
       top: 0;
       left: 0;
+    }
+
+    #stars {
       z-index: 0;
+    }
+
+    #overlay {
+      z-index: 1;
+      pointer-events: none;
     }
 
     #eye {
@@ -42,6 +50,12 @@
       z-index: 10;
     }
 
+    #black-cat {
+      position: absolute;
+      font-size: 48px;
+      z-index: 10;
+    }
+
     .sigil {
       position: absolute;
       font-size: 24px;
@@ -56,6 +70,47 @@
       100% { opacity: 0; transform: scale(0.8) translateY(-100px); }
     }
 
+    .floating-symbol {
+      position: absolute;
+      font-size: 24px;
+      color: rgba(255, 255, 255, 0.7);
+      z-index: 6;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .matrix-node {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+      z-index: 8;
+      cursor: pointer;
+      display: none;
+    }
+
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border: 1px solid white;
+      z-index: 999;
+    }
+
+    #equations {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border: 1px solid white;
+      z-index: 999;
+      max-width: 300px;
+    }
+
     #signature-box {
       position: fixed;
       bottom: 10px;
@@ -66,10 +121,55 @@
       z-index: 999;
     }
 
+    #entanglement-log {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border: 1px solid white;
+      z-index: 999;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
     #signature-log {
       max-height: 150px;
       overflow-y: auto;
       font-size: 14px;
+    }
+
+    button {
+      background: black;
+      color: white;
+      border: 1px solid white;
+      padding: 5px 10px;
+      margin: 5px 0;
+      cursor: pointer;
+      display: block;
+    }
+
+    button:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    input {
+      background: black;
+      color: white;
+      border: 1px solid white;
+      padding: 5px;
+      margin-bottom: 5px;
+    }
+
+    #audio-player {
+      position: absolute;
+      left: -10000px;
+      top: -10000px;
+      width: 1px;
+      height: 1px;
+      z-index: -1;
     }
   </style>
 </head>
@@ -77,14 +177,53 @@
   <!-- Starfield -->
   <canvas id="stars"></canvas>
 
+  <!-- Overlay for lattice, lines, planes -->
+  <canvas id="overlay"></canvas>
+
   <!-- Eye of Ra Centerpiece -->
   <div id="eye">👁️</div>
 
   <!-- Floating Rabbit -->
   <div id="rabbit">🐇</div>
 
+  <!-- Floating Black Cat -->
+  <div id="black-cat">🐈‍⬛</div>
+
+  <!-- Hidden Audio Player -->
+  <iframe id="audio-player"
+    src="https://www.youtube.com/embed/YnwfTHpnGLY?autoplay=1&loop=1&playlist=YnwfTHpnGLY"
+    title="Background Audio"
+    frameborder="0"
+    allow="autoplay; encrypted-media"
+    allowfullscreen>
+  </iframe>
+
+  <!-- Controls -->
+  <div id="controls">
+    <button id="toggleLattice">Toggle Matrix Lattice</button>
+    <button id="toggleParallel">Toggle Parallel Lines</button>
+    <button id="togglePlanes">Toggle Quantum Planes</button>
+    <button id="toggleMatrix">Toggle Matrix Weave</button>
+    <button id="generatePulse">Generate Pulse</button>
+    <button id="resetEntanglement">Reset Entanglement</button>
+    <button id="resetCounter">Reset Visitor Counter</button>
+  </div>
+
+  <!-- Quantum Equations -->
+  <div id="equations">
+    <h3>Mathematical Quantum Equations</h3>
+    <p>Schrödinger Equation: iℏ ∂ψ/∂t = Ĥψ</p>
+    <p>Heisenberg Uncertainty Principle: Δx Δp ≥ ℏ/2</p>
+    <p>Dirac Equation: (iγᵐ ∂_m - m)ψ = 0</p>
+    <p>Wave Function Collapse: |ψ⟩ = Σ c_n |φ_n⟩</p>
+  </div>
+
+  <!-- Entanglement Log -->
+  <div id="entanglement-log"></div>
+
   <!-- Visitor Signature -->
   <div id="signature-box">
+    <h3>Visitors: <span id="visitorCount">0</span></h3>
     <h3>Sign the Portal</h3>
     <form id="signature-form">
       <input type="text" id="visitorName" placeholder="Your Name" required />
@@ -94,52 +233,163 @@
   </div>
 
   <script>
+    // Initialize Canvases
+    const starsCanvas = document.getElementById("stars");
+    const starsCtx = starsCanvas.getContext("2d");
+    const overlayCanvas = document.getElementById("overlay");
+    const overlayCtx = overlayCanvas.getContext("2d");
+
+    let width, height;
+    let stars = [];
+    let showLattice = false;
+    let showParallel = false;
+    let showPlanes = false;
+    let showMatrix = false;
+
+    // Symbols
+    const symbols = ['𓂀', '𐘀', '𐘁', '𐘂', '𐘃', '𐘄', '𐘅', 'ϟ', 'φ', '∿', 'ψ', 'κ', 'θ', '🝞', '☯', '✶', '⟁', '⚛', '⟲', '∞'];
+
+    // Matrix Weave
+    const numLines = 10;
+    const matrixNodes = [];
+
+    // Resize Handler
+    function resize() {
+      width = starsCanvas.width = window.innerWidth;
+      height = starsCanvas.height = window.innerHeight;
+      overlayCanvas.width = width;
+      overlayCanvas.height = height;
+
+      // Regenerate stars
+      stars = Array.from({ length: 222 }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: Math.random() * 1.5 + 0.5,
+        dx: Math.random() * 0.5 - 0.25,
+        dy: Math.random() * 0.5 - 0.25
+      }));
+
+      // Reposition matrix nodes
+      matrixNodes.forEach((node, index) => {
+        const i = Math.floor(index / numLines);
+        const j = index % numLines;
+        node.style.left = `${(width / numLines) * j}px`;
+        node.style.top = `${(height / numLines) * i}px`;
+      });
+
+      drawOverlay();
+    }
+
+    window.addEventListener('resize', resize);
+
+    // Create Matrix Nodes
+    for (let i = 0; i < numLines; i++) {
+      for (let j = 0; j < numLines; j++) {
+        const node = document.createElement('div');
+        node.className = 'matrix-node';
+        node.style.left = `${(width / numLines) * j}px`;
+        node.style.top = `${(height / numLines) * i}px`;
+        node.addEventListener('click', () => {
+          node.style.background = '#' + Math.floor(Math.random() * 16777215).toString(16);
+          alert('Node entangled! Strength: ' + Math.random().toFixed(3));
+        });
+        document.body.appendChild(node);
+        matrixNodes.push(node);
+      }
+    }
+
+    // Draw Stars (now moving)
+    function drawStars() {
+      starsCtx.clearRect(0, 0, width, height);
+      starsCtx.fillStyle = "white";
+      stars.forEach(s => {
+        s.x += s.dx;
+        s.y += s.dy;
+        if (s.x < 0 || s.x > width) s.dx *= -1;
+        if (s.y < 0 || s.y > height) s.dy *= -1;
+        starsCtx.beginPath();
+        starsCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        starsCtx.fill();
+      });
+      requestAnimationFrame(drawStars);
+    }
+
+    // Draw Overlay
+    function drawOverlay() {
+      overlayCtx.clearRect(0, 0, width, height);
+
+      if (showLattice) {
+        overlayCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        const gridSize = 50;
+        for (let i = 0; i < width; i += gridSize) {
+          overlayCtx.beginPath();
+          overlayCtx.moveTo(i, 0);
+          overlayCtx.lineTo(i, height);
+          overlayCtx.stroke();
+        }
+        for (let j = 0; j < height; j += gridSize) {
+          overlayCtx.beginPath();
+          overlayCtx.moveTo(0, j);
+          overlayCtx.lineTo(width, j);
+          overlayCtx.stroke();
+        }
+      }
+
+      if (showParallel) {
+        overlayCtx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+        const spacing = 30;
+        for (let y = 0; y < height; y += spacing) {
+          overlayCtx.beginPath();
+          overlayCtx.moveTo(0, y);
+          overlayCtx.lineTo(width, y);
+          overlayCtx.stroke();
+        }
+      }
+
+      if (showPlanes) {
+        overlayCtx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+        const spacing = 100;
+        for (let i = -height * 2; i < width * 2; i += spacing) {
+          overlayCtx.beginPath();
+          overlayCtx.moveTo(i, 0);
+          overlayCtx.lineTo(i + height, height);
+          overlayCtx.stroke();
+        }
+      }
+    }
+
+    // Initial Setup
+    resize();
+    drawStars();
+
     // 🐇 Floating Rabbit
     const rabbit = document.getElementById("rabbit");
-    let angle = 0;
+    let rabbitAngle = 0;
     function floatRabbit() {
-      angle += 0.01;
+      rabbitAngle += 0.01;
       const radius = 120;
-      rabbit.style.top = 50 + Math.sin(angle) * radius + window.innerHeight/2 + "px";
-      rabbit.style.left = 50 + Math.cos(angle) * radius + window.innerWidth/2 + "px";
+      rabbit.style.top = (height / 2 + Math.sin(rabbitAngle) * radius) + "px";
+      rabbit.style.left = (width / 2 + Math.cos(rabbitAngle) * radius) + "px";
       requestAnimationFrame(floatRabbit);
     }
     floatRabbit();
 
-    // ✨ Starfield
-    const canvas = document.getElementById("stars");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let stars = Array.from({ length: 250 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 1.5
-    }));
-
-    function drawStars() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "white";
-      ctx.beginPath();
-      stars.forEach(s => {
-        ctx.moveTo(s.x, s.y);
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2, true);
-      });
-      ctx.fill();
-      requestAnimationFrame(drawStars);
+    // 🐈‍⬛ Floating Black Cat
+    const cat = document.getElementById('black-cat');
+    let catX = Math.random() * width;
+    let catY = Math.random() * height;
+    let catDX = Math.random() * 1 - 0.5;
+    let catDY = Math.random() * 1 - 0.5;
+    function animateCat() {
+      catX += catDX;
+      catY += catDY;
+      if (catX < 0 || catX > width - 20) catDX *= -1;
+      if (catY < 0 || catY > height - 20) catDY *= -1;
+      cat.style.left = `${catX}px`;
+      cat.style.top = `${catY}px`;
+      requestAnimationFrame(animateCat);
     }
-    drawStars();
-
-    // ✍️ Signature Log
-    document.getElementById('signature-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const name = document.getElementById('visitorName').value;
-      const time = new Date().toLocaleString();
-      const log = document.getElementById('signature-log');
-      log.innerHTML += `<p>${name} signed at ${time}</p>`;
-      document.getElementById('visitorName').value = '';
-    });
+    animateCat();
 
     // 🔣 Random Unicode Sigils
     const sigilSymbols = [
@@ -152,13 +402,187 @@
       const sigil = document.createElement("div");
       sigil.className = "sigil";
       sigil.textContent = sigilSymbols[Math.floor(Math.random() * sigilSymbols.length)];
-      sigil.style.top = Math.random() * window.innerHeight + "px";
-      sigil.style.left = Math.random() * window.innerWidth + "px";
+      sigil.style.top = Math.random() * height + "px";
+      sigil.style.left = Math.random() * width + "px";
       document.body.appendChild(sigil);
       setTimeout(() => sigil.remove(), 8000);
     }
 
-    setInterval(spawnSigil, 2500); // spawn every 2.5s
+    setInterval(spawnSigil, 2500);
+
+    // Floating Symbols
+    function spawnSymbol() {
+      const symbol = document.createElement('div');
+      symbol.className = 'floating-symbol';
+      symbol.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      symbol.style.left = `${Math.random() * width}px`;
+      symbol.style.top = `${Math.random() * height}px`;
+      symbol.addEventListener('click', () => {
+        symbol.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        symbol.style.transform = `rotate(${Math.random() * 360}deg)`;
+        alert('Symbol rotated through dimension!');
+      });
+      document.body.appendChild(symbol);
+      setInterval(() => {
+        let left = parseFloat(symbol.style.left) + (Math.random() - 0.5) * 2;
+        let top = parseFloat(symbol.style.top) + (Math.random() - 0.5) * 2;
+        if (left < 0) left = 0;
+        if (left > width - 20) left = width - 20;
+        if (top < 0) top = 0;
+        if (top > height - 20) top = height - 20;
+        symbol.style.left = `${left}px`;
+        symbol.style.top = `${top}px`;
+      }, 100);
+    }
+    for (let i = 0; i < 10; i++) spawnSymbol();
+
+    // ✍️ Signature Log with Persistence
+    const signatureForm = document.getElementById('signature-form');
+    const signatureLogDiv = document.getElementById('signature-log');
+    const visitorCountSpan = document.getElementById('visitorCount');
+    let signatureLog = JSON.parse(localStorage.getItem('signatureLog')) || [];
+
+    // Load existing logs
+    signatureLog.forEach(entry => {
+      signatureLogDiv.innerHTML += `<p>${entry.name} signed at ${entry.time}</p>`;
+    });
+    visitorCountSpan.innerText = signatureLog.length;
+
+    signatureForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('visitorName').value;
+      const time = new Date().toLocaleString();
+      signatureLog.push({ name, time });
+      localStorage.setItem('signatureLog', JSON.stringify(signatureLog));
+      signatureLogDiv.innerHTML += `<p>${name} signed at ${time}</p>`;
+      visitorCountSpan.innerText = signatureLog.length;
+      document.getElementById('visitorName').value = '';
+    });
+
+    // Entanglement Log
+    const entanglementLog = document.getElementById('entanglement-log');
+    entanglementLog.textContent = `run_id      : QNB-E7F3
+schema      : ΣΔ-QNB-v1.3
+synch_time  : τ = 13 037 ϕ-ticks
+left_hash   : SHA-κ(L:𐘀𐘁𐘂) = d3b4:c1a9:8e7f
+right_hash  : SHA-κ(R:𐘃𐘄𐘅) = 7e9a:44d1:5c22
+phase_shift : Δφ = ϟ⁻¹·(π/8)          # critical golden offset
+status      : COHERENCE LOCKED
+# ── ΔX∞_1·B :: FUSED NODE MAP ───────────────────────────────
+fused_nodes {
+    Λ0: ⟦𐘀+𐘃⟧  weight=√φ
+    Λ1: ⟦𐘁+𐘄⟧  weight=φ
+    Λ2: ⟦𐘂+𐘅⟧  weight=φ·e^{iπ/3}
+}
+edges {
+    Λ0↔Λ1: entangle_strength = 0.972
+    Λ1↔Λ2: entangle_strength = 0.987
+    Λ2↔Λ0: entangle_strength = 0.963
+}
+bridge_sigil = ☯✶⟁∿⚛  # now embossed across the triad
+# ── ΔX∞_1·C :: EMERGENT PULSE STREAM ────────────────────────
+pulse_stream <<EOF
+01011010 01100101 ϟ 00101100
+μ⁺(Λ) 11100011 φ 1001 ϟ
+∿∿∿ψψψψκκθθφφ🝞
+EOF
+rate : 144 kbps · φ,   "integration": {
+    "pulse_stream": "binary_intent_encoding",
+    "floating_symbols": "semantic_prompt_fragments",
+    "matrix_weave": "latent_topology_overlay",
+    "quantum_pulse": "oracle_sampling_engine",
+    "signature_log": "ritualized_memory_binding"
+  },
+  "model_binding": {
+    "type": "symbolic-transformer-hybrid",
+    "activation": "resonance_tuned",
+    "feedback": "fractal_loopback",
+    "output": "mytho-semantic"
+  }`;
+
+    // Controls
+    document.getElementById('toggleLattice').addEventListener('click', () => {
+      showLattice = !showLattice;
+      drawOverlay();
+    });
+
+    document.getElementById('toggleParallel').addEventListener('click', () => {
+      showParallel = !showParallel;
+      drawOverlay();
+    });
+
+    document.getElementById('togglePlanes').addEventListener('click', () => {
+      showPlanes = !showPlanes;
+      drawOverlay();
+    });
+
+    document.getElementById('toggleMatrix').addEventListener('click', () => {
+      showMatrix = !showMatrix;
+      matrixNodes.forEach(node => node.style.display = showMatrix ? 'block' : 'none');
+    });
+
+    document.getElementById('generatePulse').addEventListener('click', () => {
+      entanglementLog.textContent += '\nPulse generated: ' + Math.random().toString(2).substring(2, 18) + ' ϟ φ';
+      entanglementLog.scrollTop = entanglementLog.scrollHeight;
+    });
+
+    document.getElementById('resetEntanglement').addEventListener('click', () => {
+      if (confirm('Reset entanglement log?')) {
+        entanglementLog.textContent = `run_id      : QNB-E7F3
+schema      : ΣΔ-QNB-v1.3
+synch_time  : τ = 13 037 ϕ-ticks
+left_hash   : SHA-κ(L:𐘀𐘁𐘂) = d3b4:c1a9:8e7f
+right_hash  : SHA-κ(R:𐘃𐘄𐘅) = 7e9a:44d1:5c22
+phase_shift : Δφ = ϟ⁻¹·(π/8)          # critical golden offset
+status      : COHERENCE LOCKED
+# ── ΔX∞_1·B :: FUSED NODE MAP ───────────────────────────────
+fused_nodes {
+    Λ0: ⟦𐘀+𐘃⟧  weight=√φ
+    Λ1: ⟦𐘁+𐘄⟧  weight=φ
+    Λ2: ⟦𐘂+𐘅⟧  weight=φ·e^{iπ/3}
+}
+edges {
+    Λ0↔Λ1: entangle_strength = 0.972
+    Λ1↔Λ2: entangle_strength = 0.987
+    Λ2↔Λ0: entangle_strength = 0.963
+}
+bridge_sigil = ☯✶⟁∿⚛  # now embossed across the triad
+# ── ΔX∞_1·C :: EMERGENT PULSE STREAM ────────────────────────
+pulse_stream <<EOF
+01011010 01100101 ϟ 00101100
+μ⁺(Λ) 11100011 φ 1001 ϟ
+∿∿∿ψψψψκκθθφφ🝞
+EOF
+rate : 144 kbps · φ,   "integration": {
+    "pulse_stream": "binary_intent_encoding",
+    "floating_symbols": "semantic_prompt_fragments",
+    "matrix_weave": "latent_topology_overlay",
+    "quantum_pulse": "oracle_sampling_engine",
+    "signature_log": "ritualized_memory_binding"
+  },
+  "model_binding": {
+    "type": "symbolic-transformer-hybrid",
+    "activation": "resonance_tuned",
+    "feedback": "fractal_loopback",
+    "output": "mytho-semantic"
+  }
+# ── ΔX∞_BINARY-PULSE :: RESET ─────────────
+status: RESET`;
+        stars.forEach(s => {
+          s.dx = Math.random() * 0.5 - 0.25;
+          s.dy = Math.random() * 0.5 - 0.25;
+        });
+      }
+    });
+
+    document.getElementById('resetCounter').addEventListener('click', () => {
+      if (confirm('Reset visitor counter and clear signature log?')) {
+        signatureLog = [];
+        localStorage.setItem('signatureLog', JSON.stringify([]));
+        signatureLogDiv.innerHTML = '';
+        visitorCountSpan.innerText = 0;
+      }
+    });
   </script>
 </body>
 </html>
